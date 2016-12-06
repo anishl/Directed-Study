@@ -81,7 +81,7 @@ for t = 1:K
     Cchange(2*t)=norm((C-C_old),'fro')/reg;
     taxis(2*t)=taxis(2*t-1)+toc;
     
-    tic;
+    tic
     if DL == 1
         for j=1:J
             %%%%%%%%%%%%%% 3) Dictionary atom update:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -99,7 +99,8 @@ for t = 1:K
             %%%%%%%%%%%%%% D update end %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         end
         %+ Show progress
-        fprintf('\n');
+%         fprintf('\n');
+    end
         if method == 0
             Objfun(2*t+1)=norm((Y-D*C'),'fro')^2+(lambda^2*nnz(C)); %L0
         else
@@ -115,7 +116,13 @@ for t = 1:K
         
 %     %+ Tracking iterates
 %     Dt{t+1} = D; Ct{t+1} = C;
-    end
 end
-
+    Objfun=gather(Objfun);    
+    Sparsity=gather(Sparsity);
+    NSRE=gather(NSRE);
+    Dchange=gather(Dchange);
+    Cchange=gather(Cchange);
+    taxis=gather(taxis);
+    D=gather(D);
+    C=gather(C);
 end

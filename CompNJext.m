@@ -21,14 +21,14 @@ N = 6e4;
 global alt;
 global method;
 global DL;
-DL = 0; % 1 for yes, 0 for no Dictionary Update
+DL = 1; % 1 for yes, 0 for no Dictionary Update
 method = 0; %L :  1 or 0
+center = 1; % Indicates whether the dictionary atoms are centered (1) or not (0).
 % SOUP-DIL[LO] Parameters
 % J=n;
 J = 256;
 global lambda;
 lambda = 10; % For when not testing parameters.
-center = 0; % Indicates whether the dictionary atoms are centered (1) or not (0).
 K1 = 20;
 K2 = 5;% 40
 K3=5;% 179
@@ -66,23 +66,27 @@ for i=1:length(alpha)
 end
 global Z_start;
 Z_start = zeros(size(ZN)); % for all zeros initialization
-% Z_start=ZN; % for the Npar updated sparse code initialization
+Z_start=ZN; % for the Npar updated sparse code initialization
 % pause(5)
 %% Run SOUP-DILL0 [variables have ext: _ext]
+reset(gpuDevice);
 [D_ext,Z_ext,ObjFunc_ext,Sparsity_ext,NSRE_ext,Dchange_ext,Cchange_ext,taxis_ext] = SOUP_DILLO_s_CUp(Y,J,lambda,K2,L);
+reset(gpuDevice);
 %% Run Npar again (with Jpar D update) [variables have ext: N2]
 DN2=[];ZN2=[];ObjFuncN2=[];SparsityN2=[];NSREN2=[];DchangeN2=[];CchangeN2=[];taxisN2=[];
 for i=1:length(alpha)
     [DN2(:,:,i),ZN2(:,:,i),ObjFuncN2(i,:),SparsityN2(i,:),NSREN2(i,:),DchangeN2(i,:),CchangeN2(i,:),taxisN2(i,:)] = SOUP_DILLO_Npar(Y,J,lambda,K3,L,alpha(i));
 end
+reset(gpuDevice);
 %% Run Npar with SOUP D update [variables have ext: N3]
 DN3=[];ZN3=[];ObjFuncN3=[];SparsityN3=[];NSREN3=[];DchangeN3=[];CchangeN3=[];taxisN3=[];
 for i=1:length(alpha)
     [DN3(:,:,i),ZN3(:,:,i),ObjFuncN3(i,:),SparsityN3(i,:),NSREN3(i,:),DchangeN3(i,:),CchangeN3(i,:),taxisN3(i,:)] = SOUP_DILLO_Npar2(Y,J,lambda,K3,L,alpha(i));
 end
+reset(gpuDevice);
 %% Run SOUP with C update first and then d1,d2,.....,dj [variables have ext: _t]
 [D_t,Z_t,ObjFunc_t,Sparsity_t,NSRE_t,Dchange_t,Cchange_t,taxis_t] = SOUP_DILLO_test(Y,J,lambda,K2,L);
-
+reset(gpuDevice);
 %% Run Npar C update (15 iter),d1,C update, d2....... C update [variables have ext: _Nseq]
 % [D_Nseq,Z_Nseq,ObjFunc_Nseq,Sparsity_Nseq,NSRE_Nseq,Dchange_Nseq,Cchange_Nseq,taxis_Nseq] = SOUP_DILLO_Npar_seq(Y,J,lambda,K4,L,alpha);
 
@@ -127,7 +131,7 @@ legend(['Npar/Jpar |(Sprsty,NSRE)= ',num2str(100*SparsityN2(end)), '%,',num2str(
 
 
 
-title(['OC JF-AL |lambda = ', num2str(lambda),'| J,N=',num2str(J),',',num2str(N),'| D updated every ' ,num2str(alt),' iter for Npar',' method = L',num2str(method)])
+title(['OC JF-AL Centered = ',num2str(center),' |lambda = ', num2str(lambda),'| J,N=',num2str(J),',',num2str(N),'| D updated every ' ,num2str(alt),' iter for Npar',' method = L',num2str(method)])
 
 figure(6)
 for i=1:length(alpha)
@@ -143,7 +147,7 @@ legend(['Npar/Jpar |(Sprsty,NSRE)= ',num2str(100*SparsityN2(end)), '%,',num2str(
     ['SOUP-DILLO |(Sprsty,NSRE)= ',num2str(100*Sparsity_ext(end)), '%,',num2str(100*NSRE_ext(end)),'% | niter= ',num2str(K2)],...
     ['SOUP-DILLO C,d1,..dj |(Sprsty,NSRE)= ',num2str(100*Sparsity_t(end)), '%,',num2str(100*NSRE_t(end)),'% | niter= ',num2str(K2)],...
     ['Npar Seq |(Sprsty,NSRE)= ',num2str(100*Sparsity_Nseq(end)), '%,',num2str(100*NSRE_Nseq(end)),'% | niter= ',num2str(K1)]);
-title(['OC JF-AL |lambda = ', num2str(lambda),'| J,N=',num2str(J),',',num2str(N),'| D updated every ' ,num2str(alt),' iter for Npar',' method = L',num2str(method)])
+title(['OC JF-AL Centered = ',num2str(center),' |lambda = ', num2str(lambda),'| J,N=',num2str(J),',',num2str(N),'| D updated every ' ,num2str(alt),' iter for Npar',' method = L',num2str(method)])
 
 
 figure(7)
@@ -161,7 +165,7 @@ legend(['Npar/Jpar |(Sprsty,NSRE)= ',num2str(100*SparsityN2(end)), '%,',num2str(
     ['SOUP-DILLO C,d1,..dj |(Sprsty,NSRE)= ',num2str(100*Sparsity_t(end)), '%,',num2str(100*NSRE_t(end)),'% | niter= ',num2str(K2)],...
     ['Npar Seq |(Sprsty,NSRE)= ',num2str(100*Sparsity_Nseq(end)), '%,',num2str(100*NSRE_Nseq(end)),'% | niter= ',num2str(K1)]);
 
-title(['OC JF-AL |lambda = ', num2str(lambda),'| J,N=',num2str(J),',',num2str(N),'| D updated every ' ,num2str(alt),' iter for Npar',' method = L',num2str(method)])
+title(['OC JF-AL Centered = ',num2str(center),' |lambda = ', num2str(lambda),'| J,N=',num2str(J),',',num2str(N),'| D updated every ' ,num2str(alt),' iter for Npar',' method = L',num2str(method)])
 % legend('Npar alpha=0','Npar alpha=0.1','Npar alpha=0.5','Npar alpha=0.8', 'Npar alpha=0.9','Npar alpha=1.0','SOUP-DILLO')
 %% Speed-up Calculation
 % conv_tN=taxisN(end,2);

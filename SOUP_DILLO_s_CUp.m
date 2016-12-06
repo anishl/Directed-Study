@@ -102,7 +102,14 @@ for t = 1:K
 %     %+ Tracking iterates
 %     Dt{t+1} = D; Ct{t+1} = C;
 end
-
+    Objfun=gather(Objfun);    
+    Sparsity=gather(Sparsity);
+    NSRE=gather(NSRE);
+    Dchange=gather(Dchange);
+    Cchange=gather(Cchange);
+    taxis=gather(taxis);
+    D=gather(D);
+    C=gather(C);
 end
 
 % Generate 2D Overcomplete DCT

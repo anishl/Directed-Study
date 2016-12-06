@@ -87,8 +87,8 @@ for t = 1:K
         fprintf('\n');
         
 % % % % % % % % % % % % % % % %D update start % % % % % % % % % % % % % % %
+        tic;
         if DL == 1
-         tic;
          if mod(t,alt)==0
             C=Z';
 % % % % % % %             SOUP-ORIGINAL
