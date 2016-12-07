@@ -22,7 +22,7 @@ global alt;
 global method;
 global DL;
 DL = 1; % 1 for yes, 0 for no Dictionary Update
-method = 0; %L :  1 or 0
+% method = 0; %L :  1 or 0
 center = 1; % Indicates whether the dictionary atoms are centered (1) or not (0).
 % SOUP-DIL[LO] Parameters
 % J=n;
@@ -30,12 +30,12 @@ J = 256;
 global lambda;
 lambda = 10; % For when not testing parameters.
 K1 = 20;
-K2 = 5;% 40
-K3=5;% 179
+K2 = 40;% 40 % SOUP DIL Iterations
+K3=479;% 179 % Npar Iterations
 K4=1;
 L = Inf;
-alt=60;
-K2=1*K2;K3=1*K3;
+% alt=20; % 60 % iterations between updating the dictionary
+K2=10*K2;K3=10*K3;
 % Load images and extract patches
 % Load images
 images = cellfun(@(fname) im2double(imread(fname)),fnames,'UniformOutput',false);
@@ -88,7 +88,7 @@ reset(gpuDevice);
 [D_t,Z_t,ObjFunc_t,Sparsity_t,NSRE_t,Dchange_t,Cchange_t,taxis_t] = SOUP_DILLO_test(Y,J,lambda,K2,L);
 reset(gpuDevice);
 %% Run Npar C update (15 iter),d1,C update, d2....... C update [variables have ext: _Nseq]
-% [D_Nseq,Z_Nseq,ObjFunc_Nseq,Sparsity_Nseq,NSRE_Nseq,Dchange_Nseq,Cchange_Nseq,taxis_Nseq] = SOUP_DILLO_Npar_seq(Y,J,lambda,K4,L,alpha);
+[D_Nseq,Z_Nseq,ObjFunc_Nseq,Sparsity_Nseq,NSRE_Nseq,Dchange_Nseq,Cchange_Nseq,taxis_Nseq] = SOUP_DILLO_Npar_seq(Y,J,lambda,K4,L,alpha);
 
 %% Plot results
 % figure(3);
