@@ -1,0 +1,158 @@
+% Setup and Parameters
+set(0, 'DefaultAxesLineWidth', 2.0)
+set(0, 'DefaultTextFontSize', 18)
+set(0, 'DefaultTextFontWeight', 'normal')
+set(0, 'DefaultAxesFontSize', 18)
+%set(0, 'DefaultAxesFontWeight', 'bold')
+set(0, 'DefaultAxesFontWeight', 'normal')
+set(0, 'DefaultLineMarkerSize', 10)
+reset(gpuDevice);
+global ran
+ran = 0;
+rng(ran);
+% clear; close all; rng(0);
+% tic
+% Image/Patch Parameters
+fnames = { ...
+    'images/barbara.png', ...
+    'images/boat.png', ...
+    'images/hill.png'
+    };
+sqrtn = 8; n = sqrtn*sqrtn;
+N = 6e4;
+
+init_tst = 1; % if initialization test is performed
+
+% global alt;
+global method;
+% global DL;
+% DL = 1; % 1 for yes, 0 for no Dictionary Update
+method = 0; %L :  1 or 0
+center = 1; % Indicates whether the dictionary atoms are centered (1) or not (0).
+% SOUP-DIL Parameters
+% J = 256;
+J=256;
+global lambda;
+lambda = 10; % For when not testing parameters.
+K1 = 20;
+K2 = 40;% 40 % SOUP DIL Iterations
+K3 = 240;% 179 % Npar Iterations
+K4=1;
+L = Inf;
+% alt=20; % 60 % iterations between updating the dictionary
+if init_tst == 1 
+    K2=10*K2;K3=10*K3; 
+end
+% Load images and extract patches
+% Load images
+images = cellfun(@(fname) im2double(imread(fname)),fnames,'UniformOutput',false);
+images = cellfun(@(image) image*255,images,'UniformOutput',false);
+
+% Extract all patches
+patches = cellfun(@(image) im2col(image,[sqrtn sqrtn],'sliding'),images,'UniformOutput',false);
+patches = cell2mat(patches);
+
+% Randomly select subset of patches
+subset = randperm(size(patches,2)); subset = subset(1:N);
+Y = patches(:,subset);
+
+global x ;
+x = (genODCT1(n,J,center));
+
+%% For when Nseq is not in use
+Sparsity_Nseq=0; NSRE_Nseq=0;
+
+global Z_start; global Z_startN2;global Z_start_ext
+global initDN2; global initD_ext;
+
+initDN2 = zeros(n,J);
+initD_ext = zeros(n,J);
+
+Z_start = zeros(J,N); % for all zeros initialization
+Z_start_ext = Z_start';
+Z_startN2 = Z_start;
+
+% Z_start=ZN; % for the Npar updated sparse code initialization
+
+
+if init_tst
+    % for when testing minima
+    load initD-Z.mat
+    Sparsity_ext_old = Sparsity_ext;
+    NSRE_ext_old = NSRE_ext;
+    
+    SparsityN2_old = SparsityN2;
+    NSREN2_old = NSREN2;
+    
+    init_flag = 1;
+    initD_ext=DN2;
+    initDN2 = D_ext;
+    Z_start_ext = ZN2';
+    Z_startN2 = Z_ext';
+else
+    initDN2 = x;
+    initD_ext = x;
+end
+
+%% Run SOUP-DILL0 [variables have ext: _ext]
+reset(gpuDevice);
+[D_ext,Z_ext,ObjFunc_ext,Sparsity_ext,NSRE_ext,Dchange_ext,Cchange_ext,taxis_ext] = SOUP_DILLO_s_CUp(Y,J,lambda,K2,L);
+reset(gpuDevice);
+%% Run Npar again (with Jpar D update) [variables have ext: N2]
+DN2=[];ZN2=[];ObjFuncN2=[];SparsityN2=[];NSREN2=[];DchangeN2=[];CchangeN2=[];taxisN2=[];
+alpha = 1;
+for i=1:length(alpha)
+    [DN2(:,:,i),ZN2(:,:,i),ObjFuncN2(i,:),SparsityN2(i,:),NSREN2(i,:),DchangeN2(i,:),CchangeN2(i,:),taxisN2(i,:)] = SOUP_DILLO_Npar(Y,J,lambda,K3,L,alpha(i));
+end
+reset(gpuDevice);
+
+%% Plot results
+global CompNJplot
+CompNJplot = 1;
+if CompNJplot ==1
+    figure(5);
+    for i=1:length(alpha)
+        plot(taxisN2(i,:),ObjFuncN2(i,:),'-o');hold on;
+        
+    end
+    plot(taxis_ext,ObjFunc_ext,'-x');hold on
+    
+    xlabel('Time (s)'); ylabel('Objective Function'); 
+    legend(['Npar/Jpar |(Sprsty,NSRE)= ',num2str(100*SparsityN2(end)), '%,',num2str(100*NSREN2(end)),'% | niter= ',num2str(K3)],... 
+            ['SOUP-DILLO |(Sprsty,NSRE)= ',num2str(100*Sparsity_ext(end)), '%,',num2str(100*NSRE_ext(end)),'% | niter= ',num2str(K2)]);
+
+
+
+    title(['OC JF-AL Centered = ',num2str(center),' |lambda = ', num2str(lambda),'| J,N=',num2str(J),',',num2str(N),' method = L',num2str(method)])
+
+   
+    figure(6)
+    for i=1:length(alpha)
+        plot(taxisN2(i,:),100*SparsityN2(i,:),'-o');hold on;
+
+    end
+    plot(taxis_ext,100*Sparsity_ext,'-x');hold on
+
+    xlabel('Time (s)'); ylabel('Sparsity');
+    legend(['Npar/Jpar |(Sprsty,NSRE)= ',num2str(100*SparsityN2(end)), '%,',num2str(100*NSREN2(end)),'% | niter= ',num2str(K3)],... 
+        ['SOUP-DILLO |(Sprsty,NSRE)= ',num2str(100*Sparsity_ext(end)), '%,',num2str(100*NSRE_ext(end)),'% | niter= ',num2str(K2)]);
+    title(['OC JF-AL Centered = ',num2str(center),' |lambda = ', num2str(lambda),'| J,N = ',num2str(J),',',num2str(N),' method = L',num2str(method)])
+
+
+    figure(7)
+    for i=1:length(alpha)
+        plot(taxisN2(i,:),100*NSREN2(i,:),'-o');hold on;
+
+    end
+    plot(taxis_ext,100*NSRE_ext,'-x');hold on
+
+    xlabel('Time (s)'); ylabel('NSRE');
+    legend(['Npar/Jpar |(Sprsty,NSRE)= ',num2str(100*SparsityN2(end)), '%,',num2str(100*NSREN2(end)),'% | niter= ',num2str(K3)],... 
+        ['SOUP-DILLO |(Sprsty,NSRE)= ',num2str(100*Sparsity_ext(end)), '%,',num2str(100*NSRE_ext(end)),'% | niter= ',num2str(K2)]);
+
+    title(['OC JF-AL Centered = ',num2str(center),' |lambda = ', num2str(lambda),'| J,N=',num2str(J),',',num2str(N),' method = L',num2str(method)])
+end
+%% Saving init_test results 
+if init_tst == 0
+    save('initD-Z.mat','DN2','ZN2','D_ext','Z_ext','SparsityN2','NSREN2','Sparsity_ext','NSRE_ext','taxis_ext','taxisN2');
+end
